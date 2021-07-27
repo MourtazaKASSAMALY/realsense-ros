@@ -1,3 +1,5 @@
+Original repository: https://github.com/IntelRealSense/realsense-ros | See realsense-ros.patch
+
 # What's new with this fork
 
 Disable the publishing of tf and use it with Turtlebot3
