@@ -715,14 +715,15 @@ void BaseRealSenseNode::getParameters()
         param_name = "enable_" + STREAM_NAME(stream);
         setNgetNodeParameter(_enable[stream], param_name, ENABLE_IMU);
     }
+
     setNgetNodeParameter(_base_frame_id, "base_frame_id", DEFAULT_BASE_FRAME_ID);
     setNgetNodeParameter(_odom_frame_id, "odom_frame_id", DEFAULT_ODOM_FRAME_ID);
 
     std::vector<stream_index_pair> streams(IMAGE_STREAMS);
     streams.insert(streams.end(), HID_STREAMS.begin(), HID_STREAMS.end());
     for (auto& stream : streams)
-    {
-        std::string param_name(static_cast<std::ostringstream&&>(std::ostringstream() << STREAM_NAME(stream) << "_frame_id").str());
+    {        
+	std::string param_name(static_cast<std::ostringstream&&>(std::ostringstream() << STREAM_NAME(stream) << "_frame_id").str());
         setNgetNodeParameter(_frame_id[stream], param_name, FRAME_ID(stream));
 
         param_name = static_cast<std::ostringstream&&>(std::ostringstream() << STREAM_NAME(stream) << "_optical_frame_id").str();

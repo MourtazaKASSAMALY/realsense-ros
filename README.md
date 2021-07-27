@@ -1,93 +1,83 @@
+# What's new with this fork
+
+Disable the publishing of tf and use it with Turtlebot3
+
 # ROS2 Wrapper for Intel&reg; RealSense&trade; Devices
-These are packages for using Intel RealSense cameras (D400 and L500 series, SR300 camera and T265 Tracking Module) with ROS2.
+These are packages for using Intel RealSense cameras (D400 and L500 series, SR300 camera and T265 Tracking Module) with ROS2 Eloquent.
 
 LibRealSense supported version: v2.40.0 (see [realsense2_camera release notes](https://github.com/IntelRealSense/realsense-ros/releases))
 
 ## Installation Instructions
-This version supports ROS2 eloquent on Ubuntu 18.04.
 
-   ### Step 1: Install the ROS2 distribution
-   - #### Install [ROS2 Eloquent](https://index.ros.org/doc/ros2/Installation/Eloquent/Linux-Install-Debians/), on Ubuntu 18.04.
+### Requirements:
 
-   ```bash
-  ROS_DISTRO=eloquent
-  sudo apt update && sudo apt install curl gnupg2 lsb-release
-  curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
-  sudo sh -c 'echo "deb [arch=$(dpkg --print-architecture)] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list'
-  sudo apt update
-  sudo apt install ros-$ROS_DISTRO-ros-base
+- Ubuntu 18.04.5 LTS
+- ROS2 Eloquent
 
-  #Environment setup
-  echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
-  source ~/.bashrc
+### Install librealsense2 (Install the latest Intel&reg; RealSense&trade; SDK 2.0):
 
-  sudo apt install python3-colcon-common-extensions -y
-
-  #Install argcomplete (optional)
-  sudo apt install python3-argcomplete
-   ```
-
-
-  ### Step 2: Install librealsense2:
-   ### Install the latest Intel&reg; RealSense&trade; SDK 2.0
    - #### Install from [Debian Package](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md#installing-the-packages) - In that case treat yourself as a developer. Make sure you follow the instructions to also install librealsense2-dev and librealsense-dkms packages.
 
-   #### OR
-   - #### Build from sources by downloading the latest [Intel&reg; RealSense&trade; SDK 2.0](https://github.com/IntelRealSense/librealsense/releases/tag/v2.40.0) and follow the instructions under [Linux Installation](https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md)
+   - #### **OR** Build from sources by downloading the latest [Intel&reg; RealSense&trade; SDK 2.0](https://github.com/IntelRealSense/librealsense/releases/tag/v2.40.0) and follow the instructions under [Linux Installation](https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md)
 
+### Create ROS2 Workspace:
 
-   ### Step 3: Install Intel&reg; RealSense&trade; ROS2 wrapper from Sources
-   - Create a ROS2 workspace
-   ```bash
-   mkdir -p ~/ros2_ws/src
-   cd ~/ros2_ws/src/
-   ```
-   - Clone the latest Eloquent Intel&reg; RealSense&trade;  wrapper from [here](https://github.com/IntelRealSense/realsense-ros.git) into '~/ros2_ws/src/'
-   ```bashrc
-   git clone https://github.com/IntelRealSense/realsense-ros.git -b eloquent
-   cd ~/ros2_ws
-   ```
-
-  ### Step 4: Install dependencies:
-   ```bash
-  sudo apt-get install python-rosdep -y
-  sudo rosdep init
-  rosdep update --include-eol-distros
-  rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y
-  ```
-
-  ### Step 5: Build:
-  ```bash
-  colcon build
-  ```
-
-  ### Step 6: Source (on each new terminal):
-  ```bash
-  . install/local_setup.bash
-  ```
-
-
-## Usage Instructions
-
-### Start the camera node
-To start the camera node in ROS:
-
-```bash
-  ros2 launch realsense2_camera rs_launch.py
-```
-or, with parameters specified in rs_launch.py, for example - pointcloud enabled:
-```bash
-ros2 launch realsense2_camera rs_launch.py enable_pointcloud:=true device_type:=d435
-```
-or, without using the supplement launch files:
-```bash
-ros2 run realsense2_camera realsense2_camera_node --ros-args -p filters:=colorizer
+```shell
+cd ~
+mkdir -p ros2_worskpace/src
+echo "source ~/ros2_workspace/install/setup.bash" >> ~/.bashrc
+source ~/.bashrc
 ```
 
+### Build custom Realsense packages:
 
-This will stream all camera sensors and publish on the appropriate ROS topics.
+```shell
+cd ~/ros2_workspace/src
+git clone -b eloquent https://github.com/MourtazaKASSAMALY/realsense-ros.git
+cd ..
+```
 
-### Published Topics
+### Install dependencies
+
+```bash
+sudo apt-get install python-rosdep -y
+sudo rosdep init
+rosdep update --include-eol-distros
+rosdep install -i --from-path src/realsense-ros/ --rosdistro eloquent -y
+```
+
+### Build
+
+```bash
+colcon build --symlink-install
+source ~/.bashrc
+```
+
+## Using T265 with Turtlebot3 ##
+
+To determine the USB port of your camera:
+```bash
+  rs-enumerate-devices
+```
+To run some experiments with the realsense-viewer included with the librealsense:
+```bash
+realsense-viewer
+```
+To launch the camera node:
+```bash
+ros2 launch realsense2_camera rs_launch.py device_type:=t265 enable_fisheye1:=false enable_fisheye2:=false
+```
+To remap odom topic from realsense node and generate corresponding tf. Setting the wheels odometry topic from the turtlebot3 is crucial as it is used to pace the publishing of remapped odometry and tf:
+```bash
+ros2 run realsense_remap remap_node --ros-args -p topic_odom_in:=/camera/odom/sample topic_odom_out:=/odom wheels_topic:=/wheels_odom frame_id_out:=odom child_frame_id_out:=realsense
+```
+
+Publish the static transform between the realsense frame and the footprint (rotation center) of the turtlebot3. In this case, the base_footprint is 20 cm behind and 1 cm to the right of the realsense camera center (the vertical shift is not important here as we only want to match the rotation axis):
+```bash
+ros2 run tf2_ros static_transform_publisher -0.20 0.01 0 0 0 0 realsense base_footprint
+```
+
+## Published Topics
 The published topics differ according to the device and parameters.
 After running the above command with D435i attached, the following list of topics will be available (This is a partial list. For full one type `ros2 topic list`):
 - /camera/accel/imu_info
@@ -111,18 +101,18 @@ After running the above command with D435i attached, the following list of topic
 - /rosout
 - /tf_static
 
->Using an L515 device the list differs a little by adding a 4-bit confidence grade (pulished as a mono8 image):
+> Using an L515 device the list differs a little by adding a 4-bit confidence grade (pulished as a mono8 image):
 >- /camera/confidence/camera_info
 >- /camera/confidence/image_rect_raw
 >
->It also replaces the 2 infrared topic sets with the single available one:
+> It also replaces the 2 infrared topic sets with the single available one:
 >- /camera/infra/camera_info
 >- /camera/infra/image_raw
 
 The "/camera" prefix is the namesapce specified in the given launch file.
 When using D435 or D415, the gyro and accel topics wont be available. Likewise, other topics will be available when using T265 (see below).
 
-### Available Parameters:
+## Available Parameters:
 For the entire list of parameters type `ros2 param list`.
 
 - **serial_no**: will attach to the device with the given serial number (*serial_no*) number. Default, attach to the first (in an inner list) RealSense device.
@@ -174,9 +164,28 @@ Setting *unite_imu_method* creates a new topic, *imu*, that replaces the default
   - **NOTE** To enable the Infrared stream, you should enable `enable_infra:=true` NOT `enable_infra1:=true` nor `enable_infra2:=true`
   - **NOTE** This feature is only supported by Realsense sensors with RGB streams available from the `infra` cameras, which can be checked by observing the output of `rs-enumerate-devices`
 
-## Using T265 ##
+## Other ways of using packages ##
 
 ### Start the camera node
+
+To start the camera node in ROS:
+
+```bash
+  ros2 launch realsense2_camera rs_launch.py
+```
+or, with parameters specified in rs_launch.py, for example - pointcloud enabled:
+```bash
+ros2 launch realsense2_camera rs_launch.py enable_pointcloud:=true device_type:=d435
+```
+or, without using the supplement launch files:
+```bash
+ros2 run realsense2_camera realsense2_camera_node --ros-args -p filters:=colorizer
+```
+
+This will stream all camera sensors and publish on the appropriate ROS topics.
+
+### Examples for using with T265
+
 To start the camera node in ROS:
 
 ```bash
@@ -191,7 +200,6 @@ ros2 launch realsense2_camera rs_d400_and_t265_launch.py enable_fisheye12:=true 
 ## Still on the pipelie:
 * Support ROS2 life cycle.
 * Enable and disable sensors and filters.
-
 
 ## License
 Copyright 2018 Intel Corporation
