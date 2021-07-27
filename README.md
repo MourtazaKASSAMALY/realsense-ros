@@ -1,4 +1,4 @@
-Original repository: https://github.com/IntelRealSense/realsense-ros | See realsense-ros.patch
+Original repository: https://github.com/IntelRealSense/realsense-ros/tree/eloquent | See realsense-ros.patch
 
 # What's new with this fork
 
@@ -31,17 +31,38 @@ echo "source ~/ros2_workspace/install/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
+## Set proxy
+
+```bash
+export http_proxy="http://defra1c-proxy.emea.nsn-net.net:8080"
+export https_proxy="http://defra1c-proxy.emea.nsn-net.net:8080"
+export ftp_proxy="http://defra1c-proxy.emea.nsn-net.net:8080"
+echo "Acquire::http::proxy \"http://defra1c-proxy.emea.nsn-net.net:8080/\";" | sudo tee /etc/apt/apt.conf
+git config --global http.proxy http://defra1c-proxy.emea.nsn-net.net:8080
+```
+
 ### Build custom Realsense packages:
 
 ```shell
 cd ~/ros2_workspace/src
-git clone -b eloquent https://github.com/MourtazaKASSAMALY/realsense-ros.git
+git clone https://gitlabe2.ext.net.nokia.com/kassamal/realsense-ros2.git
 cd ..
+```
+
+## Unset proxy
+
+```bash
+export http_proxy=""
+export https_proxy=""
+export ftp_proxy=""
+echo "Acquire::http::proxy \"\";" | sudo tee /etc/apt/apt.conf
+git config --global --unset http.proxy
 ```
 
 ### Install dependencies
 
 ```bash
+cd ~/ros2_workspace/
 sudo apt-get install python-rosdep -y
 sudo rosdep init
 rosdep update --include-eol-distros
@@ -51,6 +72,7 @@ rosdep install -i --from-path src/realsense-ros/ --rosdistro eloquent -y
 ### Build
 
 ```bash
+cd ~/ros2_workspace/
 colcon build --symlink-install
 source ~/.bashrc
 ```
