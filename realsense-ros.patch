@@ -1,0 +1,467 @@
+diff --git a/README.md b/README.md
+old mode 100644
+new mode 100755
+index 08b0f9e..4b8f3ae
+--- a/README.md
++++ b/README.md
+@@ -1,93 +1,83 @@
++# What's new with this fork
++
++Disable the publishing of tf and use it with Turtlebot3
++
+ # ROS2 Wrapper for Intel&reg; RealSense&trade; Devices
+-These are packages for using Intel RealSense cameras (D400 and L500 series, SR300 camera and T265 Tracking Module) with ROS2.
++These are packages for using Intel RealSense cameras (D400 and L500 series, SR300 camera and T265 Tracking Module) with ROS2 Eloquent.
+ 
+ LibRealSense supported version: v2.40.0 (see [realsense2_camera release notes](https://github.com/IntelRealSense/realsense-ros/releases))
+ 
+ ## Installation Instructions
+-This version supports ROS2 eloquent on Ubuntu 18.04.
+-
+-   ### Step 1: Install the ROS2 distribution
+-   - #### Install [ROS2 Eloquent](https://index.ros.org/doc/ros2/Installation/Eloquent/Linux-Install-Debians/), on Ubuntu 18.04.
+ 
+-   ```bash
+-  ROS_DISTRO=eloquent
+-  sudo apt update && sudo apt install curl gnupg2 lsb-release
+-  curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+-  sudo sh -c 'echo "deb [arch=$(dpkg --print-architecture)] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list'
+-  sudo apt update
+-  sudo apt install ros-$ROS_DISTRO-ros-base
++### Requirements:
+ 
+-  #Environment setup
+-  echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
+-  source ~/.bashrc
++- Ubuntu 18.04.5 LTS
++- ROS2 Eloquent
+ 
+-  sudo apt install python3-colcon-common-extensions -y
++### Install librealsense2 (Install the latest Intel&reg; RealSense&trade; SDK 2.0):
+ 
+-  #Install argcomplete (optional)
+-  sudo apt install python3-argcomplete
+-   ```
+-
+-
+-  ### Step 2: Install librealsense2:
+-   ### Install the latest Intel&reg; RealSense&trade; SDK 2.0
+    - #### Install from [Debian Package](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md#installing-the-packages) - In that case treat yourself as a developer. Make sure you follow the instructions to also install librealsense2-dev and librealsense-dkms packages.
+ 
+-   #### OR
+-   - #### Build from sources by downloading the latest [Intel&reg; RealSense&trade; SDK 2.0](https://github.com/IntelRealSense/librealsense/releases/tag/v2.40.0) and follow the instructions under [Linux Installation](https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md)
++   - #### **OR** Build from sources by downloading the latest [Intel&reg; RealSense&trade; SDK 2.0](https://github.com/IntelRealSense/librealsense/releases/tag/v2.40.0) and follow the instructions under [Linux Installation](https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md)
+ 
++### Create ROS2 Workspace:
+ 
+-   ### Step 3: Install Intel&reg; RealSense&trade; ROS2 wrapper from Sources
+-   - Create a ROS2 workspace
+-   ```bash
+-   mkdir -p ~/ros2_ws/src
+-   cd ~/ros2_ws/src/
+-   ```
+-   - Clone the latest Eloquent Intel&reg; RealSense&trade;  wrapper from [here](https://github.com/IntelRealSense/realsense-ros.git) into '~/ros2_ws/src/'
+-   ```bashrc
+-   git clone https://github.com/IntelRealSense/realsense-ros.git -b eloquent
+-   cd ~/ros2_ws
+-   ```
++```shell
++cd ~
++mkdir -p ros2_worskpace/src
++echo "source ~/ros2_workspace/install/setup.bash" >> ~/.bashrc
++source ~/.bashrc
++```
+ 
+-  ### Step 4: Install dependencies:
+-   ```bash
+-  sudo apt-get install python-rosdep -y
+-  sudo rosdep init
+-  rosdep update --include-eol-distros
+-  rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y
+-  ```
++### Build custom Realsense packages:
+ 
+-  ### Step 5: Build:
+-  ```bash
+-  colcon build
+-  ```
++```shell
++cd ~/ros2_workspace/src
++git clone -b eloquent https://github.com/MourtazaKASSAMALY/realsense-ros.git
++cd ..
++```
+ 
+-  ### Step 6: Source (on each new terminal):
+-  ```bash
+-  . install/local_setup.bash
+-  ```
++### Install dependencies
+ 
++```bash
++sudo apt-get install python-rosdep -y
++sudo rosdep init
++rosdep update --include-eol-distros
++rosdep install -i --from-path src/realsense-ros/ --rosdistro eloquent -y
++```
+ 
+-## Usage Instructions
++### Build
+ 
+-### Start the camera node
+-To start the camera node in ROS:
++```bash
++colcon build --symlink-install
++source ~/.bashrc
++```
++
++## Using T265 with Turtlebot3 ##
+ 
++To determine the USB port of your camera:
+ ```bash
+-  ros2 launch realsense2_camera rs_launch.py
++  rs-enumerate-devices
+ ```
+-or, with parameters specified in rs_launch.py, for example - pointcloud enabled:
++To run some experiments with the realsense-viewer included with the librealsense:
+ ```bash
+-ros2 launch realsense2_camera rs_launch.py enable_pointcloud:=true device_type:=d435
++realsense-viewer
+ ```
+-or, without using the supplement launch files:
++To launch the camera node:
+ ```bash
+-ros2 run realsense2_camera realsense2_camera_node --ros-args -p filters:=colorizer
++ros2 launch realsense2_camera rs_launch.py device_type:=t265 enable_fisheye1:=false enable_fisheye2:=false
++```
++To remap odom topic from realsense node and generate corresponding tf. Setting the wheels odometry topic from the turtlebot3 is crucial as it is used to pace the publishing of remapped odometry and tf:
++```bash
++ros2 run realsense_remap remap_node --ros-args -p topic_odom_in:=/camera/odom/sample topic_odom_out:=/odom wheels_topic:=/wheels_odom frame_id_out:=odom child_frame_id_out:=realsense
+ ```
+ 
++Publish the static transform between the realsense frame and the footprint (rotation center) of the turtlebot3. In this case, the base_footprint is 20 cm behind and 1 cm to the right of the realsense camera center (the vertical shift is not important here as we only want to match the rotation axis):
++```bash
++ros2 run tf2_ros static_transform_publisher -0.20 0.01 0 0 0 0 realsense base_footprint
++```
+ 
+-This will stream all camera sensors and publish on the appropriate ROS topics.
+-
+-### Published Topics
++## Published Topics
+ The published topics differ according to the device and parameters.
+ After running the above command with D435i attached, the following list of topics will be available (This is a partial list. For full one type `ros2 topic list`):
+ - /camera/accel/imu_info
+@@ -111,18 +101,18 @@ After running the above command with D435i attached, the following list of topic
+ - /rosout
+ - /tf_static
+ 
+->Using an L515 device the list differs a little by adding a 4-bit confidence grade (pulished as a mono8 image):
++> Using an L515 device the list differs a little by adding a 4-bit confidence grade (pulished as a mono8 image):
+ >- /camera/confidence/camera_info
+ >- /camera/confidence/image_rect_raw
+ >
+->It also replaces the 2 infrared topic sets with the single available one:
++> It also replaces the 2 infrared topic sets with the single available one:
+ >- /camera/infra/camera_info
+ >- /camera/infra/image_raw
+ 
+ The "/camera" prefix is the namesapce specified in the given launch file.
+ When using D435 or D415, the gyro and accel topics wont be available. Likewise, other topics will be available when using T265 (see below).
+ 
+-### Available Parameters:
++## Available Parameters:
+ For the entire list of parameters type `ros2 param list`.
+ 
+ - **serial_no**: will attach to the device with the given serial number (*serial_no*) number. Default, attach to the first (in an inner list) RealSense device.
+@@ -174,9 +164,28 @@ Setting *unite_imu_method* creates a new topic, *imu*, that replaces the default
+   - **NOTE** To enable the Infrared stream, you should enable `enable_infra:=true` NOT `enable_infra1:=true` nor `enable_infra2:=true`
+   - **NOTE** This feature is only supported by Realsense sensors with RGB streams available from the `infra` cameras, which can be checked by observing the output of `rs-enumerate-devices`
+ 
+-## Using T265 ##
++## Other ways of using packages ##
+ 
+ ### Start the camera node
++
++To start the camera node in ROS:
++
++```bash
++  ros2 launch realsense2_camera rs_launch.py
++```
++or, with parameters specified in rs_launch.py, for example - pointcloud enabled:
++```bash
++ros2 launch realsense2_camera rs_launch.py enable_pointcloud:=true device_type:=d435
++```
++or, without using the supplement launch files:
++```bash
++ros2 run realsense2_camera realsense2_camera_node --ros-args -p filters:=colorizer
++```
++
++This will stream all camera sensors and publish on the appropriate ROS topics.
++
++### Examples for using with T265
++
+ To start the camera node in ROS:
+ 
+ ```bash
+@@ -192,7 +201,6 @@ ros2 launch realsense2_camera rs_d400_and_t265_launch.py enable_fisheye12:=true
+ * Support ROS2 life cycle.
+ * Enable and disable sensors and filters.
+ 
+-
+ ## License
+ Copyright 2018 Intel Corporation
+ 
+diff --git a/realsense2_camera/include/realsense2_camera/constants.h b/realsense2_camera/include/realsense2_camera/constants.h
+old mode 100644
+new mode 100755
+index 3531990..69e0cc4
+--- a/realsense2_camera/include/realsense2_camera/constants.h
++++ b/realsense2_camera/include/realsense2_camera/constants.h
+@@ -51,10 +51,9 @@ namespace realsense2_camera
+     const uint16_t RS416_RGB_PID    = 0x0B52; // F416 RGB
+     const uint16_t RS405_PID        = 0x0b0c; // DS5U
+     const uint16_t RS455_PID        = 0x0B5C; // D455
+-    const uint16_t RS_T265_PID      = 0x0b37; // 
+-    const uint16_t RS_L515_PID_PRE_PRQ = 0x0B3D; // 
+-    const uint16_t RS_L515_PID      = 0x0B64; // 
+-    
++    const uint16_t RS_T265_PID      = 0x0b37; //
++    const uint16_t RS_L515_PID_PRE_PRQ = 0x0B3D; //
++    const uint16_t RS_L515_PID      = 0x0B64; //
+ 
+     const bool ALIGN_DEPTH             = false;
+     const bool POINTCLOUD              = false;
+@@ -62,7 +61,7 @@ namespace realsense2_camera
+     const bool SYNC_FRAMES             = false;
+     const bool ORDERED_POINTCLOUD      = false;
+ 
+-    const bool PUBLISH_TF        = true;
++    const bool PUBLISH_TF        = false;
+     const double TF_PUBLISH_RATE = 0; // Static transform
+ 
+     const int IMAGE_WIDTH     = 640;
+@@ -79,7 +78,7 @@ namespace realsense2_camera
+     const bool ENABLE_FISHEYE = true;
+     const bool ENABLE_IMU     = true;
+     const bool HOLD_BACK_IMU_FOR_FRAMES = false;
+-    const bool PUBLISH_ODOM_TF = true;
++    const bool PUBLISH_ODOM_TF = false;
+ 
+ 
+     const std::string DEFAULT_BASE_FRAME_ID            = "camera_link";
+diff --git a/realsense2_camera/src/base_realsense_node.cpp b/realsense2_camera/src/base_realsense_node.cpp
+old mode 100644
+new mode 100755
+index e715bb9..61d51ca
+--- a/realsense2_camera/src/base_realsense_node.cpp
++++ b/realsense2_camera/src/base_realsense_node.cpp
+@@ -715,14 +715,15 @@ void BaseRealSenseNode::getParameters()
+         param_name = "enable_" + STREAM_NAME(stream);
+         setNgetNodeParameter(_enable[stream], param_name, ENABLE_IMU);
+     }
++
+     setNgetNodeParameter(_base_frame_id, "base_frame_id", DEFAULT_BASE_FRAME_ID);
+     setNgetNodeParameter(_odom_frame_id, "odom_frame_id", DEFAULT_ODOM_FRAME_ID);
+ 
+     std::vector<stream_index_pair> streams(IMAGE_STREAMS);
+     streams.insert(streams.end(), HID_STREAMS.begin(), HID_STREAMS.end());
+     for (auto& stream : streams)
+-    {
+-        std::string param_name(static_cast<std::ostringstream&&>(std::ostringstream() << STREAM_NAME(stream) << "_frame_id").str());
++    {        
++	std::string param_name(static_cast<std::ostringstream&&>(std::ostringstream() << STREAM_NAME(stream) << "_frame_id").str());
+         setNgetNodeParameter(_frame_id[stream], param_name, FRAME_ID(stream));
+ 
+         param_name = static_cast<std::ostringstream&&>(std::ostringstream() << STREAM_NAME(stream) << "_optical_frame_id").str();
+diff --git a/realsense_remap/CMakeLists.txt b/realsense_remap/CMakeLists.txt
+new file mode 100755
+index 0000000..fa70d0d
+--- /dev/null
++++ b/realsense_remap/CMakeLists.txt
+@@ -0,0 +1,50 @@
++cmake_minimum_required(VERSION 3.5)
++project(realsense_remap)
++
++# Default to C99
++if(NOT CMAKE_C_STANDARD)
++  set(CMAKE_C_STANDARD 99)
++endif()
++
++# Default to C++14
++if(NOT CMAKE_CXX_STANDARD)
++  set(CMAKE_CXX_STANDARD 14)
++endif()
++
++if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
++  add_compile_options(-Wall -Wextra -Wpedantic)
++endif()
++
++# find dependencies
++find_package(ament_cmake REQUIRED)
++find_package(rcutils REQUIRED)
++find_package(rclcpp REQUIRED)
++find_package(geometry_msgs REQUIRED)
++find_package(message_filters REQUIRED)
++find_package(nav_msgs REQUIRED)
++find_package(tf2 REQUIRED)
++find_package(tf2_ros REQUIRED)
++
++set(DEPENDENCIES
++  "geometry_msgs"
++  "message_filters"
++  "nav_msgs"
++  "rclcpp"
++  "rcutils"
++  "tf2"
++  "tf2_ros"
++)
++
++add_executable(remap_node src/remap_node.cpp)
++ament_target_dependencies(remap_node ${DEPENDENCIES})
++
++install(TARGETS
++  remap_node
++  DESTINATION lib/${PROJECT_NAME})
++
++if(BUILD_TESTING)
++  find_package(ament_lint_auto REQUIRED)
++  ament_lint_auto_find_test_dependencies()
++endif()
++
++ament_package()
+diff --git a/realsense_remap/package.xml b/realsense_remap/package.xml
+new file mode 100755
+index 0000000..16af7f4
+--- /dev/null
++++ b/realsense_remap/package.xml
+@@ -0,0 +1,25 @@
++<?xml version="1.0"?>
++<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
++<package format="3">
++  <name>realsense_remap</name>
++  <version>1.0.0</version>
++  <description>Remap odometry topics and publish tf for realsense t265 camera</description>
++  <maintainer email="mourtaza.kassamaly@hotmail.fr">mourtaza</maintainer>
++  <license>...</license>
++
++  <buildtool_depend>ament_cmake</buildtool_depend>
++
++  <test_depend>ament_lint_auto</test_depend>
++  <test_depend>ament_lint_common</test_depend>
++
++  <depend>rclcpp</depend>
++  <depend>nav_msgs</depend>
++  <depend>tf2</depend>
++  <depend>tf2_ros</depend>
++  <depend>tf2_msgs</depend>
++  <depend>geometry_msgs</depend>
++
++  <export>
++    <build_type>ament_cmake</build_type>
++  </export>
++</package>
+diff --git a/realsense_remap/src/remap_node.cpp b/realsense_remap/src/remap_node.cpp
+new file mode 100755
+index 0000000..ac6c9eb
+--- /dev/null
++++ b/realsense_remap/src/remap_node.cpp
+@@ -0,0 +1,100 @@
++#include <chrono>
++#include <functional>
++#include <memory>
++#include <string>
++#include <math.h>
++#include <unistd.h>
++
++#include "rclcpp/rclcpp.hpp"
++#include <nav_msgs/msg/odometry.hpp>
++
++#include <geometry_msgs/msg/transform_stamped.hpp>
++#include <tf2_ros/transform_broadcaster.h>
++#include <tf2_ros/transform_listener.h>
++#include <tf2_ros/buffer.h>
++
++using std::placeholders::_1;
++using namespace std::chrono_literals;
++
++/* -----------------------------------------------------------------*/
++/* This example creates a subclass of Node and implements a remapping of incoming and outcoming odometry topics as well as tf */
++
++class RemapNode : public rclcpp::Node
++{
++  public:
++    RemapNode()
++    : Node("remap_node")
++    {
++      topic_odom_in_ = declare_parameter("topic_odom_in", rclcpp::ParameterValue("/camera/odom/sample")).get<rclcpp::PARAMETER_STRING>();
++      topic_odom_out_ = declare_parameter("topic_odom_out", rclcpp::ParameterValue("/odom")).get<rclcpp::PARAMETER_STRING>();
++      wheels_topic_ = declare_parameter("wheels_topic", rclcpp::ParameterValue("/wheels_odom")).get<rclcpp::PARAMETER_STRING>();
++      frame_id_out_ = declare_parameter("frame_id_out", rclcpp::ParameterValue("odom")).get<rclcpp::PARAMETER_STRING>();
++      child_frame_id_out_ = declare_parameter("child_frame_id_out", rclcpp::ParameterValue("realsense")).get<rclcpp::PARAMETER_STRING>();
++
++      subscription_realsense_ = this->create_subscription<nav_msgs::msg::Odometry>(topic_odom_in_, 10, std::bind(&RemapNode::realsense_callback, this, _1));
++      publisher_ = this->create_publisher<nav_msgs::msg::Odometry>(topic_odom_out_, 10);
++      subscription_wheels_ = this->create_subscription<nav_msgs::msg::Odometry>(wheels_topic_, 10, std::bind(&RemapNode::wheels_callback, this, _1));
++
++      std::shared_ptr<rclcpp::Node> nh_ = std::shared_ptr<::rclcpp::Node>(this, [](::rclcpp::Node *) {});
++      tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(nh_);
++      tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
++      transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
++
++      RCLCPP_INFO(this->get_logger(), "Remap node started");
++    }
++
++  private:
++    void wheels_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
++    {
++      if (realsense_odom == NULL) { return; }
++
++      odom = *realsense_odom;
++      odom.header.frame_id = frame_id_out_;
++      odom.child_frame_id = child_frame_id_out_;
++      odom.header.stamp = msg->header.stamp;
++
++      geometry_msgs::msg::TransformStamped odom_tf;
++      odom_tf.transform.translation.x = odom.pose.pose.position.x;
++      odom_tf.transform.translation.y = odom.pose.pose.position.y;
++      odom_tf.transform.translation.z = odom.pose.pose.position.z;
++      odom_tf.transform.rotation = odom.pose.pose.orientation;
++
++      odom_tf.header.frame_id = frame_id_out_;
++      odom_tf.child_frame_id = child_frame_id_out_;
++      odom_tf.header.stamp = msg->header.stamp;
++
++      publisher_->publish(odom);
++      tf_broadcaster_->sendTransform(odom_tf);
++    }
++
++    void realsense_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
++    {
++      realsense_odom = msg;
++    }
++
++    nav_msgs::msg::Odometry::SharedPtr realsense_odom;
++    nav_msgs::msg::Odometry odom;
++
++    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_realsense_;
++    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_wheels_;
++    rclcpp::TimerBase::SharedPtr timer_;
++    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisher_;
++
++    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
++    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
++    std::shared_ptr<tf2_ros::TransformListener> transform_listener_;
++
++    std::string topic_odom_in_;
++    std::string topic_odom_out_;
++    std::string wheels_topic_;
++    std::string frame_id_out_;
++    std::string child_frame_id_out_;
++};
++
++int main(int argc, char * argv[])
++{
++  rclcpp::init(argc, argv);
++  rclcpp::spin(std::make_shared<RemapNode>());
++  rclcpp::shutdown();
++  return 0;
++}
